@@ -16,6 +16,7 @@ let package = Package(
         .iOSApplication(
             name: "My App",
             targets: ["AppModule"],
+            bundleIdentifier: "pauludo.bundle",
             teamIdentifier: "Q379URF792",
             displayVersion: "1.0",
             bundleVersion: "1",

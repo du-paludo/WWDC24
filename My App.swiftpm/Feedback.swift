@@ -22,9 +22,9 @@ enum Feedback {
     
     var color: Color {
         switch self {
-        case .perfect: return .green
-        case .good: return .yellow
-        case .miss: return .red
+        case .perfect: return Color(hex: "#00A81B")
+        case .good: return Color(hex: "#E99D09")
+        case .miss: return Color(hex: "#DB5555")
         }
     }
 }

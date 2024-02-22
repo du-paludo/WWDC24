@@ -4,24 +4,30 @@ import AVKit
 class SoundManager: NSObject, AVAudioPlayerDelegate {
     static let instance = SoundManager()
     
+    // Players used for bird song
+    var birdPlayers = [SoundOptions : AVAudioPlayer]()
+    
+    // Players used for short bird sounds
+    var mariaCavaleiraPlayers = [AVAudioPlayer]()
+    var picaPauPlayers = [AVAudioPlayer]()
+    
+    // Players used for metronome sounds
     var availableLeftPlayers = [AVAudioPlayer?]()
     var busyLeftPlayers = [AVAudioPlayer?]()
     var availableRightPlayers = [AVAudioPlayer?]()
     var busyRightPlayers = [AVAudioPlayer?]()
+    
+    // Timer to play metronome sounds
     var leftTimer: Timer?
     var rightTimer: Timer?
-    
-    var birdPlayers = [SoundOptions : AVAudioPlayer]()
-    
-    var mariaCavaleiraPlayers = [AVAudioPlayer]()
-    var picaPauPlayers = [AVAudioPlayer]()
-    
+
     func initPlayers() {
         // Starts the left side audio players
         guard let url = Bundle.main.url(forResource: SoundOptions.left.rawValue, withExtension: ".m4a") else { return }
         do {
             for _ in 1...4 {
                 let newPlayer = try AVAudioPlayer(contentsOf: url)
+                newPlayer.prepareToPlay()
                 availableLeftPlayers.append(newPlayer)
             }
         } catch let error {
@@ -33,6 +39,7 @@ class SoundManager: NSObject, AVAudioPlayerDelegate {
         do {
             for _ in 1...10 {
                 let newPlayer = try AVAudioPlayer(contentsOf: url)
+                newPlayer.prepareToPlay()
                 availableRightPlayers.append(newPlayer)
             }
         } catch let error {
@@ -86,6 +93,7 @@ class SoundManager: NSObject, AVAudioPlayerDelegate {
         }
     }
     
+    // Returns an existing audio players for metronome sounds or creates another one
     private func getAudioPlayer(sound: SoundOptions) -> AVAudioPlayer? {
         switch sound {
         case .left:
@@ -120,18 +128,14 @@ class SoundManager: NSObject, AVAudioPlayerDelegate {
         }
     }
     
-    func playSound(sound: SoundOptions) {
+    // Plays the full song of a bird
+    func playBirdSong(sound: SoundOptions) {
         let player = birdPlayers[sound]
         player?.play()
     }
     
-    func stopSounds() {
-        for player in birdPlayers {
-            player.value.stop()
-        }
-    }
-    
-    func playBeat(sound: SoundOptions, player: Int) {
+    // Playes a short bird sound
+    func playBirdSound(sound: SoundOptions, player: Int) {
         switch sound {
         case .mariaCavaleiraShort:
             mariaCavaleiraPlayers[player].stop()
@@ -144,6 +148,23 @@ class SoundManager: NSObject, AVAudioPlayerDelegate {
         }
     }
     
+    // Stop all bird sounds currently running
+    func stopBirdSounds() {
+        for player in birdPlayers {
+            player.value.pause()
+            player.value.currentTime = 0
+        }
+        for player in picaPauPlayers {
+            player.pause()
+            player.currentTime = 0
+        }
+        for player in mariaCavaleiraPlayers {
+            player.pause()
+            player.currentTime = 0
+        }
+    }
+    
+    // Starts a sound loop for the polyrhythm
     func playSoundLoop(sound: SoundOptions, bpm: Int, loops: Int) {
         switch sound {
         case .left:
@@ -173,7 +194,8 @@ class SoundManager: NSObject, AVAudioPlayerDelegate {
         }
     }
     
-    func stopSound() {
+    // Stops the loops currently running
+    func stopLoop() {
         leftTimer?.invalidate()
         rightTimer?.invalidate()
     }
@@ -182,7 +204,7 @@ class SoundManager: NSObject, AVAudioPlayerDelegate {
         if busyLeftPlayers.contains(where: {$0 == player}) {
             busyLeftPlayers.removeAll(where: {$0 == player})
             availableLeftPlayers.append(player)
-        } else {
+        } else if busyRightPlayers.contains(where: {$0 == player}) {
             busyRightPlayers.removeAll(where: {$0 == player})
             availableRightPlayers.append(player)
         }

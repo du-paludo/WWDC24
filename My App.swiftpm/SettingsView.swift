@@ -15,11 +15,8 @@ struct SettingsView: View {
     
     var intProxy: Binding<Double>{
             Binding<Double>(get: {
-                //returns the score as a Double
                 return Double(numberOfCycles)
             }, set: {
-                //rounds the double to an Int
-                print($0.description)
                 numberOfCycles = Int($0)
             })
         }
@@ -31,7 +28,6 @@ struct SettingsView: View {
                     .font(.system(size: 32, weight: .heavy, design: .rounded))
                     .foregroundStyle(Color(hex: "#663F1B"))
                 Spacer()
-//                Slider(value: intProxy , in: 0.0...10.0, step: 1.0)
                 Picker("Number of cycles", selection: $numberOfCycles) {
                     ForEach(1...10, id: \.self) { value in
                         Text("\(value)")
@@ -52,7 +48,7 @@ struct SettingsView: View {
                         .font(.system(size: 32, weight: .heavy, design: .rounded))
                         .foregroundStyle(Color(hex: "#663F1B"))
                 })
-                Text("Practice mode removes number of cycles limit and disables final statitics")
+                Text("Practice mode removes number of cycles limit and disables feedback")
                     .font(.system(size: 20, weight: .regular, design: .rounded))
                     .foregroundStyle(Color(hex: "#663F1B"))
             }
@@ -61,7 +57,7 @@ struct SettingsView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Toggle(isOn: $hideCircle, label: {
-                    Text("Hide circle")
+                    Text("Hide loop circle")
                         .font(.system(size: 32, weight: .heavy, design: .rounded))
                         .foregroundStyle(Color(hex: "#663F1B"))
                 })

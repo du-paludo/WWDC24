@@ -17,9 +17,6 @@ struct StatisticsView: View {
         ZStack {
             Color(.black)
                 .opacity(0.5)
-//                .onTapGesture {
-//                    showStatics = false
-//                }
             ZStack {
                 Rectangle()
                     .frame(width: 500, height: 380)

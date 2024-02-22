@@ -3,7 +3,7 @@ import SwiftUI
 struct GameView: View {
     // Settings that player chooses
     @State private var bpm: Int = 60
-    @State private var firstRhythm: Int = 2
+    @State private var firstRhythm: Int = 3
     @State private var secondRhythm: Int = 4
     
     // True if player has pressed start
@@ -17,8 +17,10 @@ struct GameView: View {
     
     // Used to analyze timing
     @State private var startDate: Date?
-    @State var lastLeftTouch: Date?
-    @State var lastRightTouch: Date?
+    @State var leftTimer: Timer?
+    @State var rightTimer: Timer?
+    @State var leftBlocked: Bool = false
+    @State var rightBlocked: Bool = false
     
     // Statistics
     @State var precision: Double = 0
@@ -26,19 +28,21 @@ struct GameView: View {
     @State var rightNotes: Int = 0
     @State var leftFeedback: Feedback?
     @State var rightFeedback: Feedback?
-    @State var showStatics: Bool = false
+    @State var showStatitics: Bool = false
     
     // User settings
-    @State var numberOfCycles: Int = 1
+    @State var numberOfCycles: Int = 4
     @State var practiceMode: Bool = false
     @State var hideCircle: Bool = false
     @State var disableSound: Bool = false
     
+    // Show views
+    @State var showSettings: Bool = false
+    @State var showIntroduction: Bool = false
+        
     var shouldDisable: Bool {
         let dateDifference = Date().timeIntervalSince(startDate ?? Date())
         let timeForAllCycles = Double(numberOfCycles) * 60*4/Double(bpm)
-        //        print(dateDifference)
-        //        print(timeForAllCycles - 0.2)
         return (!practiceMode && (dateDifference > timeForAllCycles - 0.2)) || !isRunning
     }
     
@@ -49,33 +53,42 @@ struct GameView: View {
             
             HStack {
                 // Opens IntroductionView
-                NavigationLink {
+                ZStack {
+                    Circle()
+                        .frame(width: 60, height: 60)
+                        .foregroundStyle(.white)
+                    Image(systemName: "info")
+                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Color(hex: "#227033"))
+                }
+                .onTapGesture {
+                    showIntroduction = true
+                    stopSetup()
+                }
+                .navigationDestination(isPresented: $showIntroduction) {
                     IntroductionView()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .frame(width: 60, height: 60)
-                            .foregroundStyle(.white)
-                        Image(systemName: "info")
-                            .font(.system(size: 44, weight: .heavy, design: .rounded))
-                            .foregroundStyle(Color(hex: "#227033"))
-                    }
+                }
+                .onChange(of: showIntroduction) {
+                    SoundManager.instance.stopBirdSounds()
                 }
                 
                 Spacer()
                 
                 // Opens SettingsView
-                NavigationLink {
+                ZStack {
+                    Circle()
+                        .frame(width: 60, height: 60)
+                        .foregroundStyle(.white)
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 38, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Color(hex: "#227033"))
+                }
+                .onTapGesture {
+                    showSettings = true
+                    stopSetup()
+                }
+                .navigationDestination(isPresented: $showSettings) {
                     SettingsView(numberOfCycles: $numberOfCycles, practiceMode: $practiceMode, hideCircle: $hideCircle, disableSound: $disableSound)
-                } label: {
-                    ZStack {
-                        Circle()
-                            .frame(width: 60, height: 60)
-                            .foregroundStyle(.white)
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 38, weight: .heavy, design: .rounded))
-                            .foregroundStyle(Color(hex: "#227033"))
-                    }
                 }
             }
             .padding(.horizontal, 32)
@@ -112,7 +125,7 @@ struct GameView: View {
                             .offset(y: -200)
                             .frame(width: 32, height: 32)
                             .rotationEffect(.degrees(startAnimation ? 360 : 0))
-                            .animation(.linear(duration: 60 * 4 / (Double(bpm))).repeatForever(autoreverses: false), value: startAnimation)
+                            .animation(.linear(duration: (60 * 4 / Double(bpm))).repeatForever(autoreverses: false), value: startAnimation)
                             .onAppear {
                                 if practiceMode {
                                     startAnimation = true
@@ -133,7 +146,7 @@ struct GameView: View {
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(Color(hex: "#663F1B"))
                             Picker("Select BPM", selection: $bpm) {
-                                ForEach(40...120, id: \.self) { value in
+                                ForEach(40...90, id: \.self) { value in
                                     Text("\(value)")
                                         .font(.system(size: 20, weight: .bold, design: .rounded))
                                         .foregroundStyle(Color(hex: "#663F1B"))
@@ -156,7 +169,7 @@ struct GameView: View {
                                 .foregroundStyle(Color(hex: "#663F1B"))
                             HStack {
                                 Picker("First rhythm", selection: $firstRhythm) {
-                                    ForEach(1...10, id: \.self) { value in
+                                    ForEach(2...8, id: \.self) { value in
                                         Text("\(value)")
                                             .font(.system(size: 20, weight: .bold, design: .rounded))
                                             .foregroundStyle(Color(hex: "#663F1B"))
@@ -168,7 +181,7 @@ struct GameView: View {
                                 Text(":")
                                 
                                 Picker("Second rhythm", selection: $secondRhythm) {
-                                    ForEach(1...10, id: \.self) { value in
+                                    ForEach(2...8, id: \.self) { value in
                                         Text("\(value)")
                                             .font(.system(size: 20, weight: .bold, design: .rounded))
                                             .foregroundStyle(Color(hex: "#663F1B"))
@@ -197,7 +210,7 @@ struct GameView: View {
                                 VStack(alignment: .center) {
                                     if let leftFeedback {
                                         Text(leftFeedback.description)
-                                            .font(.title)
+                                            .font(.system(size: 36, weight: .bold, design: .rounded))
                                             .foregroundStyle(leftFeedback.color)
                                     }
                                 }
@@ -206,7 +219,7 @@ struct GameView: View {
                                 VStack(alignment: .center) {
                                     if let rightFeedback {
                                         Text(rightFeedback.description)
-                                            .font(.title)
+                                            .font(.system(size: 36, weight: .bold, design: .rounded))
                                             .foregroundStyle(rightFeedback.color)
                                     }
                                 }
@@ -220,8 +233,8 @@ struct GameView: View {
                     // Buttons to analyze timing
                     HStack {
                         Button {
-                            if !shouldDisable {
-                                if !startAnimation && !practiceMode {
+                            if !practiceMode {
+                                if !startAnimation {
                                     startSetup()
                                 }
                                 checkTiming(isLeft: true)
@@ -239,8 +252,8 @@ struct GameView: View {
                         .disabled(shouldDisable)
                         Spacer()
                         Button {
-                            if !shouldDisable {
-                                if !startAnimation && !practiceMode {
+                            if !practiceMode {
+                                if !startAnimation {
                                     startSetup()
                                 }
                                 checkTiming(isLeft: false)
@@ -287,12 +300,13 @@ struct GameView: View {
                     cyclesLeft -= 1
                 } else {
                     stopSetup()
+                    showStatitics = true
                 }
             }
         }
         .overlay {
-            if showStatics {
-                StatisticsView(showStatics: $showStatics, precision: (precision/Double(notesHit)), rightNotes: rightNotes, numberOfNotes: numberOfCycles*(firstRhythm + secondRhythm))
+            if showStatitics {
+                StatisticsView(showStatics: $showStatitics, precision: (precision/Double(notesHit)), rightNotes: rightNotes, numberOfNotes: numberOfCycles*(firstRhythm + secondRhythm))
             }
         }
         .onAppear {
@@ -302,6 +316,18 @@ struct GameView: View {
     
     func startSetup() {
         countdownTimer = Timer.publish(every: TimeInterval(60*4/Double(bpm)), on: .main, in: .common).autoconnect()
+//        Timer.scheduledTimer(withTimeInterval: (60 * 4 * 0.3 / (Double(bpm) * Double(firstRhythm))), repeats: false) { _ in
+//            leftBlocked = false
+//            leftTimer = Timer.scheduledTimer(withTimeInterval: (60 * 4 / (Double(bpm) * Double(firstRhythm))), repeats: true) { _ in
+//                leftBlocked = false
+//            }
+//        }
+//        Timer.scheduledTimer(withTimeInterval: (60 * 4 * 0.3 / (Double(bpm) * Double(secondRhythm))), repeats: false) { _ in
+//            rightBlocked = false
+//            rightTimer = Timer.scheduledTimer(withTimeInterval: (60 * 4 / (Double(bpm) * Double(secondRhythm))), repeats: true) { _ in
+//                rightBlocked = false
+//            }
+//        }
         if !disableSound {
             SoundManager.instance.playSoundLoop(sound: .left, bpm: bpm, loops: firstRhythm)
             SoundManager.instance.playSoundLoop(sound: .right, bpm: bpm, loops: secondRhythm)
@@ -317,56 +343,51 @@ struct GameView: View {
     
     func stopSetup() {
         isRunning = false
-        SoundManager.instance.stopSound()
+        SoundManager.instance.stopLoop()
         startAnimation = false
         cyclesLeft = numberOfCycles
         leftFeedback = nil
         rightFeedback = nil
-        if !practiceMode {
-            showStatics = true
-        }
+        leftTimer?.invalidate()
+        rightTimer?.invalidate()
     }
     
     func checkTiming(isLeft: Bool) -> Void {
         var interval: Int
-        var timeFromLastTouch: Double
         if isLeft {
             interval = 60 * 4 * 1000 / (bpm * firstRhythm)
-            timeFromLastTouch = Date().timeIntervalSince(lastLeftTouch ?? Date())
         } else {
             interval = 60 * 4 * 1000 / (bpm * secondRhythm)
-            timeFromLastTouch = Date().timeIntervalSince(lastRightTouch ?? Date())
         }
-        print(interval)
         let distance = Int(Date().timeIntervalSince(startDate!) * 1000)
         let offset = min(distance % interval, abs(interval - distance % interval))
-        print(distance % interval)
-        print(interval - distance % interval)
         let relativeOffset = Double(offset)/Double(interval)
-        print(Double(offset)/Double(interval))
-        if relativeOffset <= 0.150 {
-            if isLeft {
-                leftFeedback = .perfect
-            } else {
-                rightFeedback = .perfect
-            }
-            rightNotes += 1
-        } else if relativeOffset > 0.150 && relativeOffset <= 0.300 {
-            if isLeft {
-                leftFeedback = .good
-            } else {
-                rightFeedback = .good
-            }
-            rightNotes += 1
-        } else {
-            if isLeft {
+        if isLeft {
+            if leftBlocked || offset > 300 {
                 leftFeedback = .miss
-            } else {
+            } else if offset <= 150 {
+                leftFeedback = .perfect
+//                leftBlocked = true
+                rightNotes += 1
+            } else if offset > 150 && offset <= 300 {
+                leftFeedback = .good
+//                leftBlocked = true
+                rightNotes += 1
+            }
+        } else if !isLeft {
+            if rightBlocked || offset > 300 {
                 rightFeedback = .miss
+            } else if offset <= 150 {
+                rightFeedback = .perfect
+//                rightBlocked = true
+                rightNotes += 1
+            } else if offset > 150 && offset <= 300 {
+                rightFeedback = .good
+//                rightBlocked = true
+                rightNotes += 1
             }
         }
         precision += Double(1 - relativeOffset)
-        //            print(precision)
         notesHit += 1
     }
 }
